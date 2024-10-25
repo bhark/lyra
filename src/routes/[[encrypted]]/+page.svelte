@@ -45,7 +45,7 @@
 </script>
 
 <svelte:head>
-    <title></title>
+    <title>Lyra by Tetrabit</title>
 </svelte:head>
 
 <div {lang} id="lyra" action="?/encrypt">
