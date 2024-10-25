@@ -147,6 +147,7 @@
                 padding: 0 $standard-padding;
                 padding-bottom: 10px;
                 text-transform: uppercase;
+                margin-top: -7px;
             }
 
             &:last-child { border-left: solid 1px $black; }

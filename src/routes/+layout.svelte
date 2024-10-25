@@ -7,15 +7,16 @@
 </script>
 
 <div id="nav">
-    <span class="tetrabit">Tetrabit</span>
     <span class="lyra">
         <a href="https://github.com/bhark/lyra" target="_blank">
             <span class="icon">{@html getIcon('github')}</span>
         </a>
-        <span class="text">
+        <a href="/">
             Lyra
-        </span>
+        </a>
     </span>
+
+    <span class="tetrabit">Tetrabit</span>
 </div>
 
 <div id="content">
@@ -55,7 +56,7 @@
             align-items: center;
             gap: 10px;
 
-            a { color: $black; }
+            a { color: $black; text-decoration: none; }
         }
     }
 
