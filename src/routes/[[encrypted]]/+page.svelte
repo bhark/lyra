@@ -175,7 +175,7 @@
         border-bottom: solid 1px $black;
         padding: $standard-padding;
         overflow: hidden;
-        height: 270px;
+        height: 200px;
         position: relative;
 
         button.go {
@@ -224,9 +224,9 @@
         .marquee-inner {
             display: inline-flex;
             flex-direction: row;
-            animation: scroll 20s linear infinite;
+            animation: scroll 50s linear infinite;
             position: absolute;
-            top: 0;
+            top: -35px;
             left: 0;
         }
 
