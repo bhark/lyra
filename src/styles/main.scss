@@ -1,0 +1,16 @@
+@use 'variables' as *;
+
+*, *::after, *::before { font-family: $fira; box-sizing: border-box; }
+h1, h2, h3, h4, h5, h6 { font-family: $fira; margin: 0; padding: 0; }
+html, body { background-color: $sand; margin: 0; padding: 0; overflow-x: hidden; }
+
+.icon {
+    display: flex;
+    position: relative;
+    top: -1px;
+
+    svg {
+        width: auto;
+        height: auto;
+    }
+}
