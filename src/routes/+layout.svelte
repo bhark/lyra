@@ -1,12 +1,21 @@
 <script>
 
+    import { getIcon } from '$lib/icons'
+
     let { children } = $props()
 
 </script>
 
 <div id="nav">
     <span class="tetrabit">Tetrabit</span>
-    <span class="lyra">Lyra</span>
+    <span class="lyra">
+        <a href="https://github.com/bhark/lyra" target="_blank">
+            <span class="icon">{@html getIcon('github')}</span>
+        </a>
+        <span class="text">
+            Lyra
+        </span>
+    </span>
 </div>
 
 <div id="content">
@@ -38,6 +47,15 @@
         span {
             font-size: 2rem;
             text-transform: uppercase;
+        }
+
+        span.lyra {
+            display: inline-flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+
+            a { color: $black; }
         }
     }
 
