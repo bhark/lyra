@@ -16,7 +16,7 @@
         </a>
     </span>
 
-    <span class="tetrabit">Tetrabit</span>
+    <a class="tetrabit" href="https://tetrabit.coop" target="_blank">Tetrabit</a>
 </div>
 
 <div id="content">
@@ -45,18 +45,15 @@
         background-color: $sand;
         z-index: 999;
 
-        span {
-            font-size: 2rem;
-            text-transform: uppercase;
-        }
-
-        span.lyra {
+        span, a {
             display: inline-flex;
             flex-direction: row;
             align-items: center;
             gap: 10px;
-
-            a { color: $black; text-decoration: none; }
+            font-size: 2rem;
+            text-transform: uppercase;
+            text-decoration: none;
+            color: $black;
         }
     }
 
