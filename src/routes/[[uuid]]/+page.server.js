@@ -45,7 +45,7 @@ export const actions = {
         // insert the encrypted password into the database
         const { data: res, error: err } = await sb
             .from('encrypted_passwords')
-            .insert({ ciphertext, expiry_days: expiryDays, expiry_views: expiryViews })
+            .insert({ ciphertext })
             .select('id')
             .single()
 
