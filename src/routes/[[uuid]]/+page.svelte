@@ -16,10 +16,12 @@
     let generatingLink = $state(false)
     let decrypted = $state('')
     let inputValue = $state('')
+    let expiryDays = $state(7)
+    let expiryViews = $state(1)
 
     // derivatives
     let { ciphertext } = $derived($page.data)
-    let lang = $derived(browser ? navigator.language.split('-')[0] : 'en')
+    let lang = $derived($page.data.lang)
     let product = $derived($page.url.searchParams.get('product'))
 
     const deriveKey = async (password, salt) => {
@@ -87,6 +89,8 @@
             // store ciphertext on server
             const formData = new FormData()
             formData.append('ciphertext', ciphertext)
+            formData.append('expiryDays', expiryDays)
+            formData.append('expiryViews', expiryViews)
 
             const id = await fetch('/', {
                 method: 'POST', 
@@ -106,7 +110,7 @@
         }
     }
 
-    const texts = {
+    const texts = $derived({
         da: {
             continue: 'Fortsæt',
             copied: 'Kopieret',
@@ -115,8 +119,8 @@
             get: 'Hent din adgangskode her',
             getPass: 'Hent adgangskode',
             share: 'Sikker deling af adgangskoder',
-            infoDecrypted: 'Din adgangskode forlader aldrig din enhed. Alt kryptering foregår offline, og Lyra opbevarer kun sikkert krypterede værdier. Adgangskoder slettes efter en uge, eller når de er blevet åbnet første gang.',
-            info: 'Din adgangskode forlader aldrig din enhed. Alt kryptering foregår offline, og Lyra opbevarer kun sikkert krypterede værdier. Adgangskoder slettes efter en uge, eller når de er blevet åbnet første gang. Skriv en adgangskode du vil dele, og tryk "fortsæt" for at få et sikkert link.'
+            infoDecrypted: `Din adgangskode forlader aldrig din enhed. Alt kryptering foregår offline, og Lyra opbevarer kun sikkert krypterede værdier. Adgangskoden slettes efter ${expiryDays} dage, eller når den er blevet åbnet ${expiryViews} ${expiryViews === 1 ? 'gang' : 'gange'}.`,
+            info: `Din adgangskode forlader aldrig din enhed. Alt kryptering foregår offline, og Lyra opbevarer kun sikkert krypterede værdier. Adgangskoden slettes efter ${expiryDays} dage, eller når den er blevet åbnet ${expiryViews} ${expiryViews === 1 ? 'gang' : 'gange'}. Skriv en adgangskode du vil dele, og tryk "fortsæt" for at få et sikkert link.`
         },
         en: {
             continue: 'Continue',
@@ -125,11 +129,11 @@
             write: 'Write a password here',
             get: 'Get your password here',
             getPass: 'Get password',
-            share: 'Secure sharing of passwords',
-            infoDecrypted: 'Your password never leaves your device. All encryption happens offline, and Lyra only stores securely encrypted values. Passwords are deleted after a week, or when they are opened for the first time.',
-            info: 'Your password never leaves your device. All encryption happens offline, and Lyra only stores securely encrypted values. Passwords are deleted after a week, or when they are opened for the first time. Write a password you want to share, and press "continue" to get a secure link.'
+            share: 'Secure password sharing',
+            infoDecrypted: `Your password never leaves your device. All encryption happens offline, and Lyra only stores securely encrypted values. The password will be deleted after ${expiryDays} days, or when it's been opened ${expiryViews} ${expiryViews === 1 ? 'time' : 'times'}.`,
+            info: `Your password never leaves your device. All encryption happens offline, and Lyra only stores securely encrypted values. The password will be deleted after ${expiryDays} days, or when it's been opened ${expiryViews} ${expiryViews === 1 ? 'time' : 'times'}. Write a password you want to share, and press "continue" to get a secure link.`
         }
-    }
+    })
 
 </script>
 
@@ -164,37 +168,71 @@
 
     <div class="sections">
         <div class="section input">
-            <h3>
-                <span class="icon">{@html getIcon('password')}</span>
-                <span class="text">
-                    {#if $page.params.uuid && !decrypted}
-                        {texts[lang]['get']}
-                    {:else if decrypted}
-                        {texts[lang]['find']}
-                    {:else}
-                        {texts[lang]['write']}
-                    {/if}
-                </span>
-            </h3>
-            {#if $page.params.uuid && !decrypted}
-                <button class="get" onclick={() => decrypt(product)}>{texts[lang]['getPass']}</button>
-            {:else if decrypted}
-                <input type="text" bind:value={decrypted} readonly />
+            <div class="section-head">
+                <div class="element">
+                    <span class="icon">{@html getIcon('password')}</span>
+                    <h3 class="text">
+                        {#if $page.params.uuid && !decrypted}
+                            {texts[lang]['get']}
+                        {:else if decrypted}
+                            {texts[lang]['find']}
+                        {:else}
+                            {texts[lang]['write']}
+                        {/if}
+                    </h3>
+                </div>
+            </div>
+            {#if $page.params.uuid}
+                <button class="get" class:unveil={decrypted} onclick={() => decrypt(product)}>{texts[lang]['getPass']}</button>
+
+                {#if decrypted}
+                    <input type="text" bind:value={decrypted} readonly />
+                {/if}
             {:else}
                 <input type="text" bind:value={inputValue} />
             {/if}
         </div>
 
         <div class="section">
-            <h3>
-                <span class="icon">{@html getIcon('secure')}</span>
-                <span class="text">{texts[lang]['share']}</span>
-            </h3>
+            <div class="section-head">
+                <div class="element">
+                    <span class="icon">{@html getIcon('secure')}</span>
+                    <h3 class="text">{texts[lang]['share']}</h3>
+                </div>
+            </div>
             {#if decrypted || $page.params.uuid}
                 <p>{texts[lang]['infoDecrypted']}</p>
             {:else}
                 <p>{texts[lang]['info']}</p>
             {/if}
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="control">
+            <span class="icon label">
+                {@html getIcon('timer')}
+            </span>
+            <button class="less" class:disabled={expiryDays <= 1} onclick={() => expiryDays -= 1}>
+                <span class="icon">{@html getIcon('navArrowLeft')}</span>
+            </button>
+            <span class="count">{expiryDays}</span>
+            <button class="more" class:disabled={expiryDays >= 30} onclick={() => expiryDays += 1}>
+                <span class="icon">{@html getIcon('navArrowRight')}</span>
+            </button>
+        </div>
+
+        <div class="control">
+            <span class="icon label">
+                {@html getIcon('eye')}
+            </span>
+            <button class="less" class:disabled={expiryViews <= 1} onclick={() => expiryViews -= 1}>
+                <span class="icon">{@html getIcon('navArrowLeft')}</span>
+            </button>
+            <span class="count">{expiryViews}</span>
+            <button class="more" class:disabled={expiryViews >= 5} onclick={() => expiryViews += 1}>
+                <span class="icon">{@html getIcon('navArrowRight')}</span>
+            </button>
         </div>
     </div>
 
@@ -206,6 +244,45 @@
 <style lang="scss">
 
     @use 'src/styles/variables.scss' as *;
+
+    .controls {
+        display: flex;
+        flex-direction: row;
+        border: solid 1px $black;
+        border-top: none;
+        align-self: flex-start;
+
+        .control {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            padding: $standard-padding;
+
+            &:first-child { border-right: solid 1px $black; }
+
+            button {
+                padding: 0;
+                background-color: transparent;
+                border: none;
+                cursor: pointer;
+            }
+
+            span.count { font-size: 1.2rem; }
+            span.label { margin-right: 20px; }
+        }
+    }
+
+    @media (max-width: 600px) {
+        .controls {
+            align-self: stretch;
+
+            .control {
+                flex-grow: 1;
+                flex-basis: 50%;
+            }
+        }
+    }
 
     #lyra {
         min-height: calc(100dvh - 80px);
@@ -239,23 +316,30 @@
             padding: $standard-padding;
             flex-basis: 50%;
             position: relative;
+            overflow: hidden;
 
-            h3 {
+            .section-head {
                 display: flex;
                 flex-direction: row;
                 align-items: center;
                 gap: 10px;
-                border-bottom: solid 1px $black;
+                justify-content: space-between;
                 width: calc(100% + 2 * #{$standard-padding});
                 margin-left: -#{$standard-padding};
-                padding: 0 $standard-padding;
-                padding-bottom: 10px;
-                text-transform: uppercase;
-                margin-top: -20px;
-                padding-top: 12px;
-                position: relative;
-                z-index: 2;
                 background-color: $sand;
+                padding: 0 $standard-padding 15px $standard-padding;
+                border-bottom: solid 1px $black;
+
+                h3 {
+                    text-transform: uppercase;
+                }
+
+                .element {
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    gap: 10px;
+                }
             }
 
             button.get {
@@ -270,6 +354,11 @@
                 text-transform: uppercase;
                 cursor: pointer;
                 padding-top: 40px;
+                transition: ease all 500ms;
+                z-index: 2;
+
+                &.unveil { transform: translateY(-101%); }
+                &:hover:not(.unveil) { transform: translateY(-10px); }
             }
 
             &:last-child { border-left: solid 1px $black; }

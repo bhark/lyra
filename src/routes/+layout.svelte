@@ -8,11 +8,11 @@
 
 <div id="nav">
     <span class="lyra">
-        <a href="https://github.com/bhark/lyra" target="_blank">
-            <span class="icon">{@html getIcon('github')}</span>
-        </a>
         <a href="/">
             Lyra
+        </a>
+        <a href="https://github.com/bhark/lyra" target="_blank">
+            <span class="icon">{@html getIcon('github')}</span>
         </a>
     </span>
 

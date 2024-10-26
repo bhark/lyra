@@ -1,7 +1,10 @@
 import { error, json } from '@sveltejs/kit'
 import { sb } from '$lib/server/supabase'
 
-export const load = async ({ params, fetch }) => {
+export const load = async ({ params, request }) => {
+
+    const lang = request.headers['accept-language'] || 'en'
+
     if (params.uuid) {
 
         const deleteEncryptedPassword = async () => {
@@ -28,19 +31,21 @@ export const load = async ({ params, fetch }) => {
         // check if it's older than 1 week
         if (Date.now() - new Date(created_at).getTime() > 604800000) return { expired: true }
 
-        return { ciphertext }
+        return { ciphertext, lang }
     }
+    
+    return { lang }
 }
 
 export const actions = {
     default: async ({ request }) => {
         const data = await request.formData()
-        const { ciphertext } = Object.fromEntries(data)
+        const { ciphertext, expiryDays, expiryViews } = Object.fromEntries(data)
 
         // insert the encrypted password into the database
         const { data: res, error: err } = await sb
             .from('encrypted_passwords')
-            .insert({ ciphertext })
+            .insert({ ciphertext, expiry_days: expiryDays, expiry_views: expiryViews })
             .select('id')
             .single()
 
