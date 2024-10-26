@@ -115,7 +115,7 @@
             get: 'Hent din adgangskode her',
             getPass: 'Hent adgangskode',
             share: 'Sikker deling af adgangskoder',
-            infoDecrypted: 'Din adgangskode forlader aldrig din enhed. Alt kryptering foregår offline, og Lyra opbevarer kun sikkert krypterede værdier. Adgangskoder slettes efter en uge, eller når de er blevet åbnet første gang. Du finder adgangskoden du har modtaget under "Find din adgangskode her".',
+            infoDecrypted: 'Din adgangskode forlader aldrig din enhed. Alt kryptering foregår offline, og Lyra opbevarer kun sikkert krypterede værdier. Adgangskoder slettes efter en uge, eller når de er blevet åbnet første gang.',
             info: 'Din adgangskode forlader aldrig din enhed. Alt kryptering foregår offline, og Lyra opbevarer kun sikkert krypterede værdier. Adgangskoder slettes efter en uge, eller når de er blevet åbnet første gang. Skriv en adgangskode du vil dele, og tryk "fortsæt" for at få et sikkert link.'
         },
         en: {
@@ -126,7 +126,7 @@
             get: 'Get your password here',
             getPass: 'Get password',
             share: 'Secure sharing of passwords',
-            infoDecrypted: 'Your password never leaves your device. All encryption happens offline, and Lyra only stores securely encrypted values. Passwords are deleted after a week, or when they are opened for the first time. You will find the password you received under "Find your password here".',
+            infoDecrypted: 'Your password never leaves your device. All encryption happens offline, and Lyra only stores securely encrypted values. Passwords are deleted after a week, or when they are opened for the first time.',
             info: 'Your password never leaves your device. All encryption happens offline, and Lyra only stores securely encrypted values. Passwords are deleted after a week, or when they are opened for the first time. Write a password you want to share, and press "continue" to get a secure link.'
         }
     }
@@ -190,7 +190,7 @@
                 <span class="icon">{@html getIcon('secure')}</span>
                 <span class="text">{texts[lang]['share']}</span>
             </h3>
-            {#if decrypted}
+            {#if decrypted || $page.params.uuid}
                 <p>{texts[lang]['infoDecrypted']}</p>
             {:else}
                 <p>{texts[lang]['info']}</p>
