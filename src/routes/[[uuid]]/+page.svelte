@@ -4,21 +4,106 @@
     import { fly } from 'svelte/transition'
     import { page } from '$app/stores'
     import { browser } from '$app/environment'
+    import { Buffer } from 'buffer'
 
-    let { decrypted } = $derived($page.data)
-    let value = $state(decrypted || '')
-    let link = $state(null)
+    // fixed values
+    const saltLength = 32
+    const secretLength = 32
+    const ivLength = 16
+
+    // reactive values
+    let link = $state('')
+    let generatingLink = $state(false)
+    let decrypted = $state('')
+    let inputValue = $state('')
+
+    // derivatives
+    let { ciphertext } = $derived($page.data)
     let lang = $derived(browser ? navigator.language.split('-')[0] : 'en')
+    let product = $derived($page.url.searchParams.get('product'))
 
-    const go = async () => {
-        const { encrypted } = await fetch('/api', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ value, action: 'encrypt' })
-        }).then(r => r.json())
+    const deriveKey = async (password, salt) => {
+        const encoder = new TextEncoder()
+        return await crypto.subtle.importKey('raw', encoder.encode(password), { name: 'PBKDF2' }, false, ['deriveKey'])
+            .then(key => crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, key, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']))
+    }
 
-        link = encrypted
-        navigator.clipboard.writeText(`${$page.url.origin}/${encodeURIComponent(encrypted)}`)
+    const encode = (uint8array) => {
+        return Buffer.from(uint8array).toString('base64')
+    }
+
+    const decode = (base64) => {
+        if (!base64) return
+        return Uint8Array.from(Buffer.from(base64, 'base64'))
+    }
+
+    const encrypt = async (secret) => {
+        const encoder = new TextEncoder()
+
+        const salt = crypto.getRandomValues(new Uint8Array(saltLength))
+        const iv = crypto.getRandomValues(new Uint8Array(ivLength))
+        const decryptionSecret = crypto.getRandomValues(new Uint8Array(secretLength))
+
+        const key = await deriveKey(decryptionSecret, salt)
+        const ciphertext = encode(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoder.encode(secret)))
+
+        let product = new Uint8Array([...salt, ...iv, ...decryptionSecret])
+        product = encode(product)
+        
+        return {
+            product,
+            ciphertext
+        }
+    }
+
+    const decrypt = async (product) => {
+
+        if (!product || product == '') return
+
+        const decoder = new TextDecoder()
+
+        product = decode(product)
+        const decodedCiphertext = decode(ciphertext)
+
+        // extract salt, iv and decryption secret
+        const salt = product.slice(0, saltLength)
+        const iv = product.slice(saltLength, saltLength + ivLength)
+        const decryptionSecret = product.slice(saltLength + ivLength)
+
+        const key = await deriveKey(decryptionSecret, salt)
+
+        decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, decodedCiphertext)
+            .then(buffer => decoder.decode(buffer))
+    }
+
+    const generateLink = async (secret) => {
+
+        try {
+            generatingLink = true
+
+            // encrypt the secret, retrieve ciphertext and product
+            const { ciphertext, product } = await encrypt(secret)
+
+            // store ciphertext on server
+            const formData = new FormData()
+            formData.append('ciphertext', ciphertext)
+
+            const id = await fetch('/', {
+                method: 'POST', 
+                body: formData 
+            }).then(res => res.json()).then(data => JSON.parse(data.data)[1])
+
+            // set link
+            link = `${$page.url.origin}/${id}?product=${encodeURIComponent(product)}`
+
+            // copy link to clipboard
+            navigator.clipboard.writeText(link)
+
+        } catch (error) {
+            console.error(error)
+        } finally {
+            generatingLink = false
+        }
     }
 
     const texts = {
@@ -27,18 +112,22 @@
             copied: 'Kopieret',
             find: 'Find din adgangskode her',
             write: 'Skriv en adgangskode her',
+            get: 'Hent din adgangskode her',
+            getPass: 'Hent adgangskode',
             share: 'Sikker deling af adgangskoder',
-            infoDecrypted: 'Lyra opbevarer aldrig delte adgangskoder. Ingen andre end de personer der har linket, kan tilgå adgangskoden - selv ikke Tetrabit. Linket virker i én uge. Du finder adgangskoden du har modtaget under "Find din adgangskode her".',
-            info: 'Lyra opbevarer aldrig delte adgangskoder. Ingen andre end de personer der har linket, kan tilgå adgangskoden - selv ikke Tetrabit. Linket virker i én uge. Skriv en adgangskode du vil dele, og tryk "fortsæt" for at få et sikkert link.'
+            infoDecrypted: 'Din adgangskode forlader aldrig din enhed. Alt kryptering foregår offline, og Lyra opbevarer kun sikkert krypterede værdier. Adgangskoder slettes efter en uge, eller når de er blevet åbnet første gang. Du finder adgangskoden du har modtaget under "Find din adgangskode her".',
+            info: 'Din adgangskode forlader aldrig din enhed. Alt kryptering foregår offline, og Lyra opbevarer kun sikkert krypterede værdier. Adgangskoder slettes efter en uge, eller når de er blevet åbnet første gang. Skriv en adgangskode du vil dele, og tryk "fortsæt" for at få et sikkert link.'
         },
         en: {
             continue: 'Continue',
             copied: 'Copied',
             find: 'Find your password here',
             write: 'Write a password here',
+            get: 'Get your password here',
+            getPass: 'Get password',
             share: 'Secure sharing of passwords',
-            infoDecrypted: 'Lyra never stores shared passwords. No one but the people who have the link can access the password - not even Tetrabit. The link is valid for one week. You will find the password you received under "Find your password here".',
-            info: 'Lyra never stores shared passwords. No one but the people who have the link can access the password - not even Tetrabit. The link is valid for one week. Write a password you want to share, and press "continue" to get a secure link.'
+            infoDecrypted: 'Your password never leaves your device. All encryption happens offline, and Lyra only stores securely encrypted values. Passwords are deleted after a week, or when they are opened for the first time. You will find the password you received under "Find your password here".',
+            info: 'Your password never leaves your device. All encryption happens offline, and Lyra only stores securely encrypted values. Passwords are deleted after a week, or when they are opened for the first time. Write a password you want to share, and press "continue" to get a secure link.'
         }
     }
 
@@ -58,7 +147,7 @@
             {/each}
         </div>
 
-        <button onclick={go} class="go" class:hidden={decrypted || ((!value || value === '') && !link)}>
+        <button onclick={() => generateLink(inputValue)} class="go" class:hidden={decrypted || ((!inputValue || inputValue === '') && !link)}>
             {#if !link}
                 <div class="inner" out:fly={{ duration: 300, y: 60 }}>
                     <span class="text">{texts[lang]['continue']}</span>
@@ -77,9 +166,23 @@
         <div class="section input">
             <h3>
                 <span class="icon">{@html getIcon('password')}</span>
-                <span class="text">{#if decrypted}{texts[lang]['find']}{:else}{texts[lang]['write']}{/if}</span>
+                <span class="text">
+                    {#if $page.params.uuid && !decrypted}
+                        {texts[lang]['get']}
+                    {:else if decrypted}
+                        {texts[lang]['find']}
+                    {:else}
+                        {texts[lang]['write']}
+                    {/if}
+                </span>
             </h3>
-            <input type="text" bind:value readonly={decrypted} />
+            {#if $page.params.uuid && !decrypted}
+                <button class="get" onclick={() => decrypt(product)}>{texts[lang]['getPass']}</button>
+            {:else if decrypted}
+                <input type="text" bind:value={decrypted} readonly />
+            {:else}
+                <input type="text" bind:value={inputValue} />
+            {/if}
         </div>
 
         <div class="section">
@@ -135,6 +238,7 @@
         .section {
             padding: $standard-padding;
             flex-basis: 50%;
+            position: relative;
 
             h3 {
                 display: flex;
@@ -147,7 +251,25 @@
                 padding: 0 $standard-padding;
                 padding-bottom: 10px;
                 text-transform: uppercase;
-                margin-top: -7px;
+                margin-top: -20px;
+                padding-top: 12px;
+                position: relative;
+                z-index: 2;
+                background-color: $sand;
+            }
+
+            button.get {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: $black;
+                color: $sand;
+                font-size: 3rem;
+                text-transform: uppercase;
+                cursor: pointer;
+                padding-top: 40px;
             }
 
             &:last-child { border-left: solid 1px $black; }

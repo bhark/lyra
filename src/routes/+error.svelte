@@ -28,6 +28,8 @@
         align-items: center;
         flex-direction: column;
         gap: 10px;
+        padding: 20px;
+        text-align: center;
 
         a {
             text-decoration: none;
