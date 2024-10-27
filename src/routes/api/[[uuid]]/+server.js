@@ -7,8 +7,10 @@ const deleteEncryptedPassword = async (uuid) => {
 }
 
 // decrypt
-export const GET = async ({ request, params }) => {
+export const GET = async ({ params }) => {
     const { uuid } = params
+
+    if (!uuid) error(400, 'Please supply a valid UUID')
 
     // get the encrypted password from the database
     const { data, error: err } = await sb

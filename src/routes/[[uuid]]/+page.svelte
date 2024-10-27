@@ -65,7 +65,7 @@
 
         product = decode(product)
 
-        const ciphertext = await fetch(`/${$page.params.uuid}`, {
+        const ciphertext = await fetch(`/api/${$page.params.uuid}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
         }).then(r => r.json()).then(data => data.ciphertext).catch(err => console.error(err))
@@ -91,7 +91,7 @@
             // encrypt the secret, retrieve ciphertext and product
             const { ciphertext, product } = await encrypt(secret)
 
-            const id = await fetch('/', {
+            const id = await fetch('/api', {
                 method: 'POST', 
                 body: JSON.stringify({
                     ciphertext,
