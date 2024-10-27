@@ -20,7 +20,6 @@
     let expiryViews = $state(1)
 
     // derivatives
-    let { ciphertext } = $derived($page.data)
     let lang = $derived($page.data.lang)
     let product = $derived($page.url.searchParams.get('product'))
 
@@ -65,6 +64,12 @@
         const decoder = new TextDecoder()
 
         product = decode(product)
+
+        const ciphertext = await fetch(`/${$page.params.uuid}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+        }).then(r => r.json()).then(data => data.ciphertext).catch(err => console.error(err))
+
         const decodedCiphertext = decode(ciphertext)
 
         // extract salt, iv and decryption secret
@@ -86,16 +91,14 @@
             // encrypt the secret, retrieve ciphertext and product
             const { ciphertext, product } = await encrypt(secret)
 
-            // store ciphertext on server
-            const formData = new FormData()
-            formData.append('ciphertext', ciphertext)
-            formData.append('expiryDays', expiryDays)
-            formData.append('expiryViews', expiryViews)
-
             const id = await fetch('/', {
                 method: 'POST', 
-                body: formData 
-            }).then(res => res.json()).then(data => JSON.parse(data.data)[1])
+                body: JSON.stringify({
+                    ciphertext,
+                    expiryDays,
+                    expiryViews
+                })
+            }).then(r => r.json()).then(data => data.id)
 
             // set link
             link = `${$page.url.origin}/${id}?product=${encodeURIComponent(product)}`
@@ -112,6 +115,7 @@
 
     const texts = $derived({
         da: {
+            title: 'Lyra af Tetrabit',
             continue: 'Fortsæt',
             copied: 'Kopieret',
             find: 'Find din adgangskode her',
@@ -123,6 +127,7 @@
             info: `Din adgangskode forlader aldrig din enhed. Alt kryptering foregår offline, og Lyra opbevarer kun sikkert krypterede værdier. Adgangskoden slettes efter ${expiryDays} dage, eller når den er blevet åbnet ${expiryViews} ${expiryViews === 1 ? 'gang' : 'gange'}. Skriv en adgangskode du vil dele, og tryk "fortsæt" for at få et sikkert link.`
         },
         en: {
+            title: 'Lyra by Tetrabit',
             continue: 'Continue',
             copied: 'Copied',
             find: 'Find your password here',
@@ -138,7 +143,7 @@
 </script>
 
 <svelte:head>
-    <title>Lyra by Tetrabit</title>
+    <title>{texts[lang]['title']}</title>
 </svelte:head>
 
 <div {lang} id="lyra" action="?/encrypt">
@@ -193,6 +198,34 @@
             {/if}
         </div>
 
+        <div class="section controls mobile" class:hidden={$page.params.uuid}>
+            <div class="control">
+                <span class="icon label">
+                    {@html getIcon('timer')}
+                </span>
+                <button class="less" class:disabled={expiryDays <= 1} onclick={() => expiryDays -= 1}>
+                    <span class="icon">{@html getIcon('navArrowLeft')}</span>
+                </button>
+                <span class="count">{expiryDays}</span>
+                <button class="more" class:disabled={expiryDays >= 30} onclick={() => expiryDays += 1}>
+                    <span class="icon">{@html getIcon('navArrowRight')}</span>
+                </button>
+            </div>
+    
+            <div class="control">
+                <span class="icon label">
+                    {@html getIcon('eye')}
+                </span>
+                <button class="less" class:disabled={expiryViews <= 1} onclick={() => expiryViews -= 1}>
+                    <span class="icon">{@html getIcon('navArrowLeft')}</span>
+                </button>
+                <span class="count">{expiryViews}</span>
+                <button class="more" class:disabled={expiryViews >= 5} onclick={() => expiryViews += 1}>
+                    <span class="icon">{@html getIcon('navArrowRight')}</span>
+                </button>
+            </div>
+        </div>
+
         <div class="section">
             <div class="section-head">
                 <div class="element">
@@ -208,7 +241,7 @@
         </div>
     </div>
 
-    <div class="controls">
+    <div class="controls desktop" class:hidden={$page.params.uuid}>
         <div class="control">
             <span class="icon label">
                 {@html getIcon('timer')}
@@ -251,6 +284,8 @@
         border: solid 1px $black;
         border-top: none;
         align-self: flex-start;
+
+        &.hidden { display: none; }
 
         .control {
             display: flex;
@@ -353,7 +388,6 @@
                 font-size: 3rem;
                 text-transform: uppercase;
                 cursor: pointer;
-                padding-top: 40px;
                 transition: ease all 500ms;
                 z-index: 2;
 
@@ -477,6 +511,21 @@
                 &:first-child { border-bottom: solid 1px $black; }
             }
         }
+    }
+
+    @media (max-width: 600px) {
+        .desktop { display: none; }
+
+        .section.controls {
+            min-height: auto;
+            padding: 0;
+
+            > .control { padding: $standard-padding; }
+        }
+    }
+
+    @media (min-width: 600px) {
+        .mobile { display: none; }
     }
 
 </style>
