@@ -301,6 +301,9 @@
                 background-color: transparent;
                 border: none;
                 cursor: pointer;
+                transition: ease all 300ms;
+
+                &.disabled { opacity: .5; pointer-events: none; }
             }
 
             span.count { font-size: 1.2rem; }
