@@ -4,7 +4,7 @@ import { validate as validateUUID } from 'uuid'
 
 export const load = async ({ params, request }) => {
 
-    const lang = request.headers.get('accept-language').split('-')[0] === 'da' ? 'da' : 'en'
+    const lang = request.headers.get('accept-language')?.split('-')[0] == 'da' ? 'da' : 'en'
 
     if (params.uuid) {
 
