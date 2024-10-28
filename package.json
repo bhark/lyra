@@ -26,6 +26,7 @@
 		"buffer": "^6.0.3",
 		"sass": "^1.80.4",
 		"scss": "^0.2.4",
-		"svelte-preprocess": "^6.0.3"
+		"svelte-preprocess": "^6.0.3",
+		"uuid": "^11.0.1"
 	}
 }

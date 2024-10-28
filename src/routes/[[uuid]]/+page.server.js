@@ -1,11 +1,15 @@
 import { error } from '@sveltejs/kit'
 import { sb } from '$lib/server/supabase'
+import { validate as validateUUID } from 'uuid'
 
 export const load = async ({ params, request }) => {
 
     const lang = request.headers.get('accept-language').split('-')[0] === 'da' ? 'da' : 'en'
 
     if (params.uuid) {
+
+        // validate the uuid
+        if (!validateUUID(params.uuid)) error(400, lang === 'da' ? 'Ugyldigt link' : 'Invalid link')
 
         // get the encrypted password from the database
         const { data, error: err } = await sb
@@ -14,8 +18,8 @@ export const load = async ({ params, request }) => {
             .eq('id', params.uuid)
             .maybeSingle()
 
-        if (err) error(500, err.message || 'Something went wrong when trying to retrieve the encrypted password')
-        if (!data) error(404, 'The encrypted password does not exist')
+        if (err) error(500, err.message || lang === 'da' ? 'Vi stødte på en uventet fejl - beklager!' : 'We encountered an unexpected error - sorry!')
+        if (!data) error(404, lang === 'da' ? 'Den krypterede adgangskode findes ikke' : 'The encrypted password does not exist')
 
         const { created_at, expiry_days } = data
 
